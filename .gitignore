@@ -20,3 +20,4 @@
 
 # Skip the eclipse static includes
 /lib/
+/bin/
