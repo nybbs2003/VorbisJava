@@ -21,136 +21,131 @@ import org.gagravarr.ogg.IOUtils;
 import org.gagravarr.ogg.OggPacket;
 
 /**
- * The first Flac packet stored in an Ogg stream is 
- *  special. This holds both the stream information,
- *  and the {@link FlacFrame}
+ * The first Flac packet stored in an Ogg stream is special. This holds both the
+ * stream information, and the {@link FlacFrame}
  */
 public class FlacFirstOggPacket extends HighLevelOggStreamPacket {
-    private int majorVersion;
-    private int minorVersion;
-    private int numberOfHeaderBlocks;
-    private FlacOggInfo info;
+	private int majorVersion;
+	private int minorVersion;
+	private int numberOfHeaderBlocks;
+	private FlacOggInfo info;
 
-    public FlacFirstOggPacket() {
-        this(new FlacOggInfo());
-    }
+	public FlacFirstOggPacket() {
+		this(new FlacOggInfo());
+	}
 
-    public FlacFirstOggPacket(FlacOggInfo info) {
-        super();
-        majorVersion = 1;
-        minorVersion = 0;
-        numberOfHeaderBlocks = 0;
-        this.info = info;
-        this.info.setFlacFirstOggPacket(this);
-    }
+	public FlacFirstOggPacket(FlacOggInfo info) {
+		super();
+		majorVersion = 1;
+		minorVersion = 0;
+		numberOfHeaderBlocks = 0;
+		this.info = info;
+		this.info.setFlacFirstOggPacket(this);
+	}
 
-    public FlacFirstOggPacket(OggPacket oggPacket) {
-        super(oggPacket);
+	public FlacFirstOggPacket(OggPacket oggPacket) {
+		super(oggPacket);
 
-        // Extract the info
-        byte[] data = getData();
-        // 0 = 0x7f
-        // 1-4 = FLAC
-        majorVersion = IOUtils.toInt(data[5]);
-        minorVersion = IOUtils.toInt(data[6]);
-        numberOfHeaderBlocks = IOUtils.getInt2BE(data, 7);
-        // 9-12 = fLaC
-        // 13-16 = 0 + length
+		// Extract the info
+		byte[] data = getData();
+		// 0 = 0x7f
+		// 1-4 = FLAC
+		majorVersion = IOUtils.toInt(data[5]);
+		minorVersion = IOUtils.toInt(data[6]);
+		numberOfHeaderBlocks = IOUtils.getInt2BE(data, 7);
+		// 9-12 = fLaC
+		// 13-16 = 0 + length
 
-        // Then it's the info
-        info = new FlacOggInfo(data, 17, this);
-    }
+		// Then it's the info
+		info = new FlacOggInfo(data, 17, this);
+	}
 
-    @Override
-    public OggPacket write() {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try {
-            baos.write("FLAC".getBytes("ASCII"));
-            baos.write(majorVersion);
-            baos.write(minorVersion);
-            IOUtils.writeInt2BE(baos, numberOfHeaderBlocks);
-            baos.write("fLaC".getBytes("ASCII"));
-            baos.write(info.getData());
-        } catch(IOException e) {
-            // Should never happen!
-            throw new RuntimeException(e);
-        }
+	@Override
+	public OggPacket write() {
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		try {
+			baos.write("FLAC".getBytes("ASCII"));
+			baos.write(majorVersion);
+			baos.write(minorVersion);
+			IOUtils.writeInt2BE(baos, numberOfHeaderBlocks);
+			baos.write("fLaC".getBytes("ASCII"));
+			baos.write(info.getData());
+		} catch (IOException e) {
+			// Should never happen!
+			throw new RuntimeException(e);
+		}
 
-        setData(baos.toByteArray());
-        return super.write();
-    }
+		setData(baos.toByteArray());
+		return super.write();
+	}
 
-    /**
-     * Returns the Major Version number
-     */
-    public int getMajorVersion() {
-        return majorVersion;
-    }
+	/**
+	 * Returns the Major Version number
+	 */
+	public int getMajorVersion() {
+		return majorVersion;
+	}
 
-    public void setMajorVersion(int majorVersion) {
-        if(majorVersion > 255) {
-            throw new IllegalArgumentException("Version numbers must be in the range 0-255");
-        }
-        this.majorVersion = majorVersion;
-    }
+	public void setMajorVersion(int majorVersion) {
+		if (majorVersion > 255) {
+			throw new IllegalArgumentException("Version numbers must be in the range 0-255");
+		}
+		this.majorVersion = majorVersion;
+	}
 
-    public FlacOggInfo getInfo() {
-        return info;
-    }
+	public FlacOggInfo getInfo() {
+		return info;
+	}
 
-    /**
-     * Returns the Minor Version number. Decoders should be able to
-     *  handle anything at a given major number, no matter the minor one 
-     */
-    public int getMinorVersion() {
-        return minorVersion;
-    }
+	/**
+	 * Returns the Minor Version number. Decoders should be able to handle
+	 * anything at a given major number, no matter the minor one
+	 */
+	public int getMinorVersion() {
+		return minorVersion;
+	}
 
-    public void setMinorVersion(int minorVersion) {
-        if(minorVersion > 255) {
-            throw new IllegalArgumentException("Version numbers must be in the range 0-255");
-        }
-        this.minorVersion = minorVersion;
-    }
+	public void setMinorVersion(int minorVersion) {
+		if (minorVersion > 255) {
+			throw new IllegalArgumentException("Version numbers must be in the range 0-255");
+		}
+		this.minorVersion = minorVersion;
+	}
 
-    /**
-     * Gets the number of header blocks, excluding this one, or
-     *  zero if not known
-     */
-    public int getNumberOfHeaderBlocks() {
-        return numberOfHeaderBlocks;
-    }
+	/**
+	 * Gets the number of header blocks, excluding this one, or zero if not
+	 * known
+	 */
+	public int getNumberOfHeaderBlocks() {
+		return numberOfHeaderBlocks;
+	}
 
-    public void setNumberOfHeaderBlocks(int numberOfHeaderBlocks) {
-        this.numberOfHeaderBlocks = numberOfHeaderBlocks;
-    }
+	public void setNumberOfHeaderBlocks(int numberOfHeaderBlocks) {
+		this.numberOfHeaderBlocks = numberOfHeaderBlocks;
+	}
 
-    /**
-     * Does this packet (the first in the stream) contain
-     *  the magic string indicating that it's a FLAC
-     *  one?
-     */
-    public static boolean isFlacStream(OggPacket firstPacket) {
-        if(! firstPacket.isBeginningOfStream()) {
-            return false;
-        }
-        return isFlacSpecial(firstPacket);
-    }
+	/**
+	 * Does this packet (the first in the stream) contain the magic string
+	 * indicating that it's a FLAC one?
+	 */
+	public static boolean isFlacStream(OggPacket firstPacket) {
+		if (!firstPacket.isBeginningOfStream()) {
+			return false;
+		}
+		return isFlacSpecial(firstPacket);
+	}
 
-    protected static boolean isFlacSpecial(OggPacket packet) {
-        byte[] d = packet.getData();
-        byte type = d[0];
+	protected static boolean isFlacSpecial(OggPacket packet) {
+		byte[] d = packet.getData();
+		byte type = d[0];
 
-        // Ensure 0x7f then "FLAC"
-        if(type == 0x7f) {
-            if(d[1] == (byte)'F' &&
-                    d[2] == (byte)'L' &&
-                    d[3] == (byte)'A' &&
-                    d[4] == (byte)'C') {
+		// Ensure 0x7f then "FLAC"
+		if (type == 0x7f) {
+			if (d[1] == (byte) 'F' && d[2] == (byte) 'L' && d[3] == (byte) 'A' && d[4] == (byte) 'C') {
 
-                return true;
-            }
-        }
-        return false;
-    }
+				return true;
+			}
+		}
+		return false;
+	}
 }

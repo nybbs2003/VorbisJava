@@ -14,57 +14,59 @@
 package org.gagravarr.ogg;
 
 /**
- * A high level stream packet sat atop
- *  of an OggPacket.
- * Provides support for reading and writing
- *  new and existing OggPacket instances.
+ * A high level stream packet sat atop of an OggPacket. Provides support for
+ * reading and writing new and existing OggPacket instances.
  */
 public abstract class HighLevelOggStreamPacket implements OggStreamPacket {
-    private OggPacket oggPacket;
-    private byte[] data;
+	private OggPacket oggPacket;
+	private byte[] data;
 
-    protected HighLevelOggStreamPacket(OggPacket oggPacket) {
-        this.oggPacket = oggPacket;
-    }
-    protected HighLevelOggStreamPacket() {
-        this.oggPacket = null;
-    }
+	protected HighLevelOggStreamPacket(OggPacket oggPacket) {
+		this.oggPacket = oggPacket;
+	}
 
-    protected OggPacket getOggPacket() {
-        return oggPacket;
-    }
+	protected HighLevelOggStreamPacket() {
+		this.oggPacket = null;
+	}
 
-    public byte[] getData() {
-        if(data != null) {
-            return data;
-        }
-        if(oggPacket != null) {
-            return oggPacket.getData();
-        }
-        return null;
-    }
-    public void setData(byte[] data) {
-        this.data = data;
-    }
+	protected OggPacket getOggPacket() {
+		return oggPacket;
+	}
 
-    /**
-     * Returns the approximate number of bytes overhead
-     *  from the underlying {@link OggPacket} / {@link OggPage}
-     *  structures into which this data is stored.
-     * <p>Will return 0 for packets not yet associated with a page.
-     * <p>This information is normally only of interest to information,
-     *  diagnostic and debugging tools.
-     */
-    public int getOggOverheadSize() {
-        if (oggPacket != null) {
-            return oggPacket.getOverheadBytes();
-        } else {
-            return 0;
-        }
-    }
+	public byte[] getData() {
+		if (data != null) {
+			return data;
+		}
+		if (oggPacket != null) {
+			return oggPacket.getData();
+		}
+		return null;
+	}
 
-    public OggPacket write() {
-        this.oggPacket = new OggPacket(getData());
-        return this.oggPacket;
-    }
+	public void setData(byte[] data) {
+		this.data = data;
+	}
+
+	/**
+	 * Returns the approximate number of bytes overhead from the underlying
+	 * {@link OggPacket} / {@link OggPage} structures into which this data is
+	 * stored.
+	 * <p>
+	 * Will return 0 for packets not yet associated with a page.
+	 * <p>
+	 * This information is normally only of interest to information, diagnostic
+	 * and debugging tools.
+	 */
+	public int getOggOverheadSize() {
+		if (oggPacket != null) {
+			return oggPacket.getOverheadBytes();
+		} else {
+			return 0;
+		}
+	}
+
+	public OggPacket write() {
+		this.oggPacket = new OggPacket(getData());
+		return this.oggPacket;
+	}
 }
