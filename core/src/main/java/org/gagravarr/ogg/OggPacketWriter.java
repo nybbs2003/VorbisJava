@@ -18,177 +18,167 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 public class OggPacketWriter implements Closeable {
-    private boolean closed = false;
-    private boolean doneFirstPacket = false;
-    private OggFile file;
-    private int sid;
-    private int sequenceNumber;
-    private long currentGranulePosition = 0;
+	private boolean closed = false;
+	private boolean doneFirstPacket = false;
+	private OggFile file;
+	private int sid;
+	private int sequenceNumber;
+	private long currentGranulePosition = 0;
 
-    private ArrayList<OggPage> buffer =
-            new ArrayList<OggPage>();
+	private ArrayList<OggPage> buffer = new ArrayList<OggPage>();
 
-    protected OggPacketWriter(OggFile parentFile, int sid) {
-        this.file = parentFile;
-        this.sid = sid;
+	protected OggPacketWriter(OggFile parentFile, int sid) {
+		this.file = parentFile;
+		this.sid = sid;
 
-        this.sequenceNumber = 0;
-    }
+		this.sequenceNumber = 0;
+	}
 
-    /**
-     * Sets the current granule position.
-     * The granule position will be applied to all
-     *  un-flushed packets, and all future packets.
-     * As such, you should normally either call a flush
-     *  just before or just after this call. 
-     */
-    public void setGranulePosition(long position) {
-        currentGranulePosition = position;
-        for(OggPage p : buffer) {
-            p.setGranulePosition(position);
-        }
-    }
-    public long getCurrentGranulePosition() {
-        return currentGranulePosition;
-    }
+	/**
+	 * Sets the current granule position. The granule position will be applied
+	 * to all un-flushed packets, and all future packets. As such, you should
+	 * normally either call a flush just before or just after this call.
+	 */
+	public void setGranulePosition(long position) {
+		currentGranulePosition = position;
+		for (OggPage p : buffer) {
+			p.setGranulePosition(position);
+		}
+	}
 
-    public int getSid() {
-        return sid;
-    }
+	public long getCurrentGranulePosition() {
+		return currentGranulePosition;
+	}
 
-    private OggPage getCurrentPage(boolean forceNew) {
-        if(buffer.size() == 0 || forceNew) {
-            OggPage page = new OggPage(sid, sequenceNumber++); 
-            if(currentGranulePosition > 0) {
-                page.setGranulePosition(currentGranulePosition);
-            }
-            buffer.add( page );
-            return page;
-        }
-        return buffer.get( buffer.size()-1 );
-    }
+	public int getSid() {
+		return sid;
+	}
 
-    /**
-     * Buffers the given packet up ready for
-     *  writing to the stream, but doesn't
-     *  write it to disk yet. The granule
-     *  position is unchanged.
-     */
-    public void bufferPacket(OggPacket packet) {
-        bufferPacket(packet, currentGranulePosition);
-    }
-    /**
-     * Buffers the given packet up ready for
-     *  writing to the stream, but doesn't
-     *  write it to disk yet. The granule position
-     *  is updated on the page.
-     * If writing the packet requires a new page,
-     *  then the updated granule position only
-     *  applies to the new page
-     */
-    public void bufferPacket(OggPacket packet, long granulePosition) {
-        if(closed) {
-            throw new IllegalStateException("Can't buffer packets on a closed stream!");
-        }
-        if(! doneFirstPacket) {
-            packet.setIsBOS();
-            doneFirstPacket = true;
-        }
+	private OggPage getCurrentPage(boolean forceNew) {
+		if (buffer.size() == 0 || forceNew) {
+			OggPage page = new OggPage(sid, sequenceNumber++);
+			if (currentGranulePosition > 0) {
+				page.setGranulePosition(currentGranulePosition);
+			}
+			buffer.add(page);
+			return page;
+		}
+		return buffer.get(buffer.size() - 1);
+	}
 
-        int size = packet.getData().length;
-        boolean emptyPacket = (size==0);
+	/**
+	 * Buffers the given packet up ready for writing to the stream, but doesn't
+	 * write it to disk yet. The granule position is unchanged.
+	 */
+	public void bufferPacket(OggPacket packet) {
+		bufferPacket(packet, currentGranulePosition);
+	}
 
-        // Add to pages in turn
-        OggPage page = getCurrentPage(false);
-        int pos = 0;
-        while( pos < size || emptyPacket) {
-            pos = page.addPacket(packet, pos);
-            if(pos < size) {
-                page = getCurrentPage(true);
-                page.setIsContinuation();
-            }
-            page.setGranulePosition(granulePosition);
-            emptyPacket = false;
-        }
-        currentGranulePosition = granulePosition;
-        packet.setParent(page);
-    }
+	/**
+	 * Buffers the given packet up ready for writing to the stream, but doesn't
+	 * write it to disk yet. The granule position is updated on the page. If
+	 * writing the packet requires a new page, then the updated granule position
+	 * only applies to the new page
+	 */
+	public void bufferPacket(OggPacket packet, long granulePosition) {
+		if (closed) {
+			throw new IllegalStateException("Can't buffer packets on a closed stream!");
+		}
+		if (!doneFirstPacket) {
+			packet.setIsBOS();
+			doneFirstPacket = true;
+		}
 
-    /**
-     * Buffers the given packet up ready for
-     *  writing to the file, and then writes
-     *  it to the stream if indicated.
-     */
-    public void bufferPacket(OggPacket packet, boolean flush) throws IOException {
-        bufferPacket(packet);
-        if(flush) {
-            flush();
-        }
-    }
+		int size = packet.getData().length;
+		boolean emptyPacket = (size == 0);
 
-    /**
-     * Returns the number of bytes (excluding headers)
-     *  currently waiting to be written to disk.
-     * RFC 3533 suggests that pages should normally 
-     *  be in the 4-8kb range.
-     * If this size exceeds just shy of 64kb, then
-     *  multiple pages will be needed in the underlying
-     *  stream.
-     */
-    public int getSizePendingFlush() {
-        int size = 0;
-        for(OggPage p : buffer) {
-            size += p.getDataSize();
-        }
-        return size;
-    }
+		// Add to pages in turn
+		OggPage page = getCurrentPage(false);
+		int pos = 0;
+		while (pos < size || emptyPacket) {
+			pos = page.addPacket(packet, pos);
+			if (pos < size) {
+				page = getCurrentPage(true);
+				page.setIsContinuation();
+			}
+			page.setGranulePosition(granulePosition);
+			emptyPacket = false;
+		}
+		currentGranulePosition = granulePosition;
+		packet.setParent(page);
+	}
 
-    /**
-     * Returns the size of the page currently being written
-     *  to, including its headers.
-     * For a new stream, or a stream that has just been
-     *  flushed, will return zero.
-     * @return Current page size, or 27 (the minimum) if no current page
-     */
-    public int getCurrentPageSize() {
-        if (buffer.isEmpty()) return OggPage.getMinimumPageSize();
+	/**
+	 * Buffers the given packet up ready for writing to the file, and then
+	 * writes it to the stream if indicated.
+	 */
+	public void bufferPacket(OggPacket packet, boolean flush) throws IOException {
+		bufferPacket(packet);
+		if (flush) {
+			flush();
+		}
+	}
 
-        OggPage p = buffer.get( buffer.size()-1 );
-        return p.getPageSize();
-    }
+	/**
+	 * Returns the number of bytes (excluding headers) currently waiting to be
+	 * written to disk. RFC 3533 suggests that pages should normally be in the
+	 * 4-8kb range. If this size exceeds just shy of 64kb, then multiple pages
+	 * will be needed in the underlying stream.
+	 */
+	public int getSizePendingFlush() {
+		int size = 0;
+		for (OggPage p : buffer) {
+			size += p.getDataSize();
+		}
+		return size;
+	}
 
-    /**
-     * Writes all pending packets to the stream,
-     *  splitting across pages as needed.
-     */
-    public void flush() throws IOException {
-        if(closed) {
-            throw new IllegalStateException("Can't flush packets on a closed stream!");
-        }
+	/**
+	 * Returns the size of the page currently being written to, including its
+	 * headers. For a new stream, or a stream that has just been flushed, will
+	 * return zero.
+	 * 
+	 * @return Current page size, or 27 (the minimum) if no current page
+	 */
+	public int getCurrentPageSize() {
+		if (buffer.isEmpty())
+			return OggPage.getMinimumPageSize();
 
-        // Write in one go
-        OggPage[] pages = buffer.toArray(new OggPage[buffer.size()]); 
-        file.writePages(pages);
+		OggPage p = buffer.get(buffer.size() - 1);
+		return p.getPageSize();
+	}
 
-        // Get ready for next time!
-        buffer.clear();
-    }
+	/**
+	 * Writes all pending packets to the stream, splitting across pages as
+	 * needed.
+	 */
+	public void flush() throws IOException {
+		if (closed) {
+			throw new IllegalStateException("Can't flush packets on a closed stream!");
+		}
 
-    /**
-     * Writes all pending packets to the stream,
-     *  with the last one containing the End Of Stream
-     *  Flag, and then closes down.
-     */
-    public void close() throws IOException {
-        if(buffer.size() > 0) {
-            buffer.get( buffer.size()-1 ).setIsEOS();
-        } else {
-            OggPacket p = new OggPacket(new byte[0]);
-            p.setIsEOS();
-            bufferPacket(p);
-        }
-        flush();
+		// Write in one go
+		OggPage[] pages = buffer.toArray(new OggPage[buffer.size()]);
+		file.writePages(pages);
 
-        closed = true;
-    }
+		// Get ready for next time!
+		buffer.clear();
+	}
+
+	/**
+	 * Writes all pending packets to the stream, with the last one containing
+	 * the End Of Stream Flag, and then closes down.
+	 */
+	public void close() throws IOException {
+		if (buffer.size() > 0) {
+			buffer.get(buffer.size() - 1).setIsEOS();
+		} else {
+			OggPacket p = new OggPacket(new byte[0]);
+			p.setIsEOS();
+			bufferPacket(p);
+		}
+		flush();
+
+		closed = true;
+	}
 }

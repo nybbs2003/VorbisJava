@@ -27,79 +27,75 @@ import org.gagravarr.ogg.OggStreamIdentifier;
 import org.gagravarr.ogg.OggStreamIdentifier.OggStreamType;
 
 /**
- * Prints out information on the Steams within an Ogg File.
- * This is a bit more low level than something like ogg-info or
- *  oggz-info
+ * Prints out information on the Steams within an Ogg File. This is a bit more
+ * low level than something like ogg-info or oggz-info
  */
 public class OggInfoTool {
-    public static void main(String[] args) throws Exception {
-        if(args.length == 0) {
-            System.err.println("Use:");
-            System.err.println("   OggInfoTool <file> [file] [file]");
-            System.exit(1);
-        }
+	public static void main(String[] args) throws Exception {
+		if (args.length == 0) {
+			System.err.println("Use:");
+			System.err.println("   OggInfoTool <file> [file] [file]");
+			System.exit(1);
+		}
 
-        for(String f : args) {
-            OggInfoTool info = new OggInfoTool(new File(f));
-            info.printStreamInfo();
-        }
-    }
+		for (String f : args) {
+			OggInfoTool info = new OggInfoTool(new File(f));
+			info.printStreamInfo();
+		}
+	}
 
-    private File file;
-    private OggFile ogg;
-    public OggInfoTool(File f) throws FileNotFoundException {
-        if(! f.exists()) {
-            throw new FileNotFoundException(f.toString());
-        }
+	private File file;
+	private OggFile ogg;
 
-        file = f;
-        ogg = new OggFile( new FileInputStream(f) );
-    }
+	public OggInfoTool(File f) throws FileNotFoundException {
+		if (!f.exists()) {
+			throw new FileNotFoundException(f.toString());
+		}
 
-    public void printStreamInfo() throws IOException {
-        OggPacketReader r = ogg.getPacketReader();
+		file = f;
+		ogg = new OggFile(new FileInputStream(f));
+	}
 
-        System.out.println("Processing file \"" + file.toString() + "\"");
+	public void printStreamInfo() throws IOException {
+		OggPacketReader r = ogg.getPacketReader();
 
-        int pc = 0;
-        int streams = 0;
-        int lastSid = -1;
+		System.out.println("Processing file \"" + file.toString() + "\"");
 
-        Map<Integer, String> streamTypes = new HashMap<Integer, String>();
+		int pc = 0;
+		int streams = 0;
+		int lastSid = -1;
 
-        OggPacket p;
-        while( (p = r.getNextPacket()) != null ) {
-            if(p.isBeginningOfStream()) {
-                streams++;
-                lastSid = p.getSid();
+		Map<Integer, String> streamTypes = new HashMap<Integer, String>();
 
-                System.out.println("");
-                System.out.println("New logical stream #"+streams + ", serial: " +
-                                   Integer.toHexString(p.getSid()) + " (" + p.getSid() + ")");
+		OggPacket p;
+		while ((p = r.getNextPacket()) != null) {
+			if (p.isBeginningOfStream()) {
+				streams++;
+				lastSid = p.getSid();
 
-                OggStreamType type = OggStreamIdentifier.identifyType(p);
-                streamTypes.put(lastSid, type.description);
+				System.out.println("");
+				System.out.println("New logical stream #" + streams + ", serial: " + Integer.toHexString(p.getSid()) + " (" + p.getSid() + ")");
 
-                System.out.println("\t"+type.description+" detected ("+type.mimetype+")");
-            } else if(p.isEndOfStream()) {
-                if (pc > 0) {
-                    System.out.println("(" + pc + " mid-stream packets of " +
-                                       Integer.toHexString(p.getSid()) + ")");
-                }
-                System.out.println("Stream " + Integer.toHexString(p.getSid()) + 
-                                   " of " + streamTypes.get(p.getSid()) + " ended");
-                pc = 0;
-            } else {
-                if(p.getSid() != lastSid) {
-                    System.out.println("(" + pc + " packets of stream " +
-                                       Integer.toHexString(p.getSid()) + ")");
+				OggStreamType type = OggStreamIdentifier.identifyType(p);
+				streamTypes.put(lastSid, type.description);
 
-                    lastSid = p.getSid();
-                    pc = 0;
-                } else {
-                    pc++;
-                }
-            }
-        }
-    }
+				System.out.println("\t" + type.description + " detected (" + type.mimetype + ")");
+			} else if (p.isEndOfStream()) {
+				if (pc > 0) {
+					System.out.println("(" + pc + " mid-stream packets of " + Integer.toHexString(p.getSid()) + ")");
+				}
+				System.out.println("Stream " + Integer.toHexString(p.getSid()) + " of " + streamTypes.get(p.getSid()) + " ended");
+				pc = 0;
+			} else {
+				if (p.getSid() != lastSid) {
+					System.out.println("(" + pc + " packets of stream " + Integer.toHexString(p.getSid()) + ")");
+
+					lastSid = p.getSid();
+					pc = 0;
+				} else {
+					pc++;
+				}
+			}
+		}
+	}
 }

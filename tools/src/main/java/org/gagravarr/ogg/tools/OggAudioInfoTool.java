@@ -27,152 +27,138 @@ import org.gagravarr.ogg.audio.OggAudioStatistics;
 import org.gagravarr.ogg.audio.OggAudioStream;
 
 /**
- * Parent class of tools for looking at the innards
- *  of Ogg Audio File
+ * Parent class of tools for looking at the innards of Ogg Audio File
  */
 public abstract class OggAudioInfoTool {
-    public static void handleMain(String[] args, OggAudioInfoTool tool) throws Exception {
-        if(args.length == 0) {
-            printHelp(tool);
-        }
+	public static void handleMain(String[] args, OggAudioInfoTool tool) throws Exception {
+		if (args.length == 0) {
+			printHelp(tool);
+		}
 
-        boolean debugging = false;
-        String filename = args[0];
-        if(args.length > 1 && args[0].equals("-d")) {
-            filename = args[1];
-            debugging = true;
-        }
+		boolean debugging = false;
+		String filename = args[0];
+		if (args.length > 1 && args[0].equals("-d")) {
+			filename = args[1];
+			debugging = true;
+		}
 
-        File file = new File(filename);
-        if (! file.exists()) {
-            System.err.println("Error - file not found");
-            System.err.println("   " + file);
-            System.exit(2);
-        }
+		File file = new File(filename);
+		if (!file.exists()) {
+			System.err.println("Error - file not found");
+			System.err.println("   " + file);
+			System.exit(2);
+		}
 
-        tool.process(file, debugging);
-    }
+		tool.process(file, debugging);
+	}
 
-    public abstract void process(File file, boolean debugging) throws IOException;
+	public abstract void process(File file, boolean debugging) throws IOException;
 
-    public abstract String getToolName();
-    public abstract String getDefaultExtension();
+	public abstract String getToolName();
 
-    public static void printHelp(OggAudioInfoTool tool) {
-        System.err.println("Use:");
-        System.err.println("   " + tool.getToolName() + 
-                           " file." + tool.getDefaultExtension());
-        System.exit(1);
-    }
+	public abstract String getDefaultExtension();
 
-    public static void listTags(OggAudioHeaders oa) {
-        Map<String, List<String>> comments =
-                oa.getTags().getAllComments();
-        for(String tag : comments.keySet()) {
-            for(String value : comments.get(tag)) {
-                System.out.println("  " + tag + "=" + value);
-            }
-        }
-    }
+	public static void printHelp(OggAudioInfoTool tool) {
+		System.err.println("Use:");
+		System.err.println("   " + tool.getToolName() + " file." + tool.getDefaultExtension());
+		System.exit(1);
+	}
 
-    protected static String format2(double d) {
-        return String.format("%8.1f",d);
-    }
-    protected static String format1(double d) {
-        return String.format("%.2f",d);
-    }
-    protected static String formatBitrate(double bitrate) {
-        if (bitrate < 512) {
-            return String.format("%.2f", bitrate) + " b/s";
-        } else if (bitrate < 768*1024) {
-            return String.format("%.2f", bitrate/1024) + " kb/s";
-        } else {
-            return String.format("%.2f", bitrate/1024/1024) + " mb/s";
-        }
-    }
+	public static void listTags(OggAudioHeaders oa) {
+		Map<String, List<String>> comments = oa.getTags().getAllComments();
+		for (String tag : comments.keySet()) {
+			for (String value : comments.get(tag)) {
+				System.out.println("  " + tag + "=" + value);
+			}
+		}
+	}
 
-    protected static class InfoAudioStats extends OggAudioStatistics {
-        private boolean debugging;
-        private int lastSeqNum;
+	protected static String format2(double d) {
+		return String.format("%8.1f", d);
+	}
 
-        public InfoAudioStats(OggAudioHeaders headers, OggAudioStream audio, 
-                   int lastSeqNum, boolean debugging) throws IOException {
-            super(headers, audio);
-            this.debugging = debugging;
-            this.lastSeqNum = lastSeqNum;
-        }
+	protected static String format1(double d) {
+		return String.format("%.2f", d);
+	}
 
-        @Override
-        protected void handleAudioData(OggStreamAudioData audioData) {
-            super.handleAudioData(audioData);
+	protected static String formatBitrate(double bitrate) {
+		if (bitrate < 512) {
+			return String.format("%.2f", bitrate) + " b/s";
+		} else if (bitrate < 768 * 1024) {
+			return String.format("%.2f", bitrate / 1024) + " kb/s";
+		} else {
+			return String.format("%.2f", bitrate / 1024 / 1024) + " mb/s";
+		}
+	}
 
-            if(debugging) {
-                System.out.println(
-                        lastSeqNum + " - " +
-                        audioData.getGranulePosition() + " - " +
-                        audioData.getData().length + " bytes"
-                );
-            }
-        }
-    }
+	protected static class InfoAudioStats extends OggAudioStatistics {
+		private boolean debugging;
+		private int lastSeqNum;
 
-    protected static class InfoPacketReader extends OggPacketReader {
-        private boolean inProgress = false;
-        private int lastSeqNum = 0;
+		public InfoAudioStats(OggAudioHeaders headers, OggAudioStream audio, int lastSeqNum, boolean debugging) throws IOException {
+			super(headers, audio);
+			this.debugging = debugging;
+			this.lastSeqNum = lastSeqNum;
+		}
 
-        public InfoPacketReader(InputStream inp) {
-            super(inp);
-        }
+		@Override
+		protected void handleAudioData(OggStreamAudioData audioData) {
+			super.handleAudioData(audioData);
 
-        public int getLastSeqNum() {
-            return lastSeqNum;
-        }
+			if (debugging) {
+				System.out.println(lastSeqNum + " - " + audioData.getGranulePosition() + " - " + audioData.getData().length + " bytes");
+			}
+		}
+	}
 
-        @Override
-        public OggPacket getNextPacket() throws IOException {
-            if(inProgress) {
-                inProgress = false;
-                return super.getNextPacket();
-            } else {
-                inProgress = true;
-            }
+	protected static class InfoPacketReader extends OggPacketReader {
+		private boolean inProgress = false;
+		private int lastSeqNum = 0;
 
-            OggPacket p = super.getNextPacket();
-            inProgress = false;
+		public InfoPacketReader(InputStream inp) {
+			super(inp);
+		}
 
-            if(p != null) {
-                lastSeqNum = p.getSequenceNumber();
+		public int getLastSeqNum() {
+			return lastSeqNum;
+		}
 
-                if(p.isBeginningOfStream()) {
-                    System.out.println(
-                            "New logical stream " + 
-                            Integer.toHexString(p.getSid()) +
-                            " (" + p.getSid() + ") found"
-                    );
-                }
-                if(p.isEndOfStream()) {
-                    System.out.println(
-                            "Logical stream " + 
-                            Integer.toHexString(p.getSid()) +
-                            " (" + p.getSid() + ") completed"
-                    );
-                }
-            }
-            return p;
-        }
+		@Override
+		public OggPacket getNextPacket() throws IOException {
+			if (inProgress) {
+				inProgress = false;
+				return super.getNextPacket();
+			} else {
+				inProgress = true;
+			}
 
-        @Override
-        public OggPacket getNextPacketWithSid(int sid) throws IOException {
-            OggPacket p;
-            while( (p = getNextPacket()) != null ) {
-                if(p.getSid() != sid) {
-                    System.out.println("Ignoring packet from stream " +
-                            Integer.toHexString(p.getSid()));
-                } else {
-                    return p;
-                }
-            }
-            return null;
-        }
-    }
+			OggPacket p = super.getNextPacket();
+			inProgress = false;
+
+			if (p != null) {
+				lastSeqNum = p.getSequenceNumber();
+
+				if (p.isBeginningOfStream()) {
+					System.out.println("New logical stream " + Integer.toHexString(p.getSid()) + " (" + p.getSid() + ") found");
+				}
+				if (p.isEndOfStream()) {
+					System.out.println("Logical stream " + Integer.toHexString(p.getSid()) + " (" + p.getSid() + ") completed");
+				}
+			}
+			return p;
+		}
+
+		@Override
+		public OggPacket getNextPacketWithSid(int sid) throws IOException {
+			OggPacket p;
+			while ((p = getNextPacket()) != null) {
+				if (p.getSid() != sid) {
+					System.out.println("Ignoring packet from stream " + Integer.toHexString(p.getSid()));
+				} else {
+					return p;
+				}
+			}
+			return null;
+		}
+	}
 }

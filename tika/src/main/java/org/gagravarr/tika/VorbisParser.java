@@ -37,55 +37,49 @@ import org.xml.sax.SAXException;
  * Parser for OGG Vorbis audio files
  */
 public class VorbisParser extends OggAudioParser {
-   private static final long serialVersionUID = 5904981674814527529L;
+	private static final long serialVersionUID = 5904981674814527529L;
 
-   protected static final MediaType OGG_VORBIS =
-           MediaType.parse(OggStreamIdentifier.OGG_VORBIS.mimetype);
+	protected static final MediaType OGG_VORBIS = MediaType.parse(OggStreamIdentifier.OGG_VORBIS.mimetype);
 
-   private static List<MediaType> TYPES = Arrays.asList(new MediaType[] {
-           OGG_VORBIS
-   });
+	private static List<MediaType> TYPES = Arrays.asList(new MediaType[] { OGG_VORBIS });
 
-   public Set<MediaType> getSupportedTypes(ParseContext context) {
-      return new HashSet<MediaType>(TYPES);
-   }
-   
-   public void parse(
-         InputStream stream, ContentHandler handler,
-         Metadata metadata, ParseContext context)
-         throws IOException, TikaException, SAXException {
-      metadata.set(Metadata.CONTENT_TYPE, OGG_VORBIS.toString());
-      metadata.set(XMPDM.AUDIO_COMPRESSOR, "Vorbis");
+	public Set<MediaType> getSupportedTypes(ParseContext context) {
+		return new HashSet<MediaType>(TYPES);
+	}
 
-      // Open the process the files
-      OggFile ogg = new OggFile(stream);
-      VorbisFile vorbis = new VorbisFile(ogg);
+	public void parse(InputStream stream, ContentHandler handler, Metadata metadata, ParseContext context) throws IOException, TikaException, SAXException {
+		metadata.set(Metadata.CONTENT_TYPE, OGG_VORBIS.toString());
+		metadata.set(XMPDM.AUDIO_COMPRESSOR, "Vorbis");
 
-      // Start
-      XHTMLContentHandler xhtml = new XHTMLContentHandler(handler, metadata);
-      xhtml.startDocument();
+		// Open the process the files
+		OggFile ogg = new OggFile(stream);
+		VorbisFile vorbis = new VorbisFile(ogg);
 
-      // Extract the common Vorbis info
-      extractInfo(metadata, vorbis.getInfo());
+		// Start
+		XHTMLContentHandler xhtml = new XHTMLContentHandler(handler, metadata);
+		xhtml.startDocument();
 
-      // Extract any Vorbis comments
-      extractComments(metadata, xhtml, vorbis.getComment());
+		// Extract the common Vorbis info
+		extractInfo(metadata, vorbis.getInfo());
 
-      // TODO See if there's a Kate stream, and if there is,
-      //  return the lyrics etc from within there
+		// Extract any Vorbis comments
+		extractComments(metadata, xhtml, vorbis.getComment());
 
-      // Extract the audio length
-      extractDuration(metadata, xhtml, vorbis, vorbis);
+		// TODO See if there's a Kate stream, and if there is,
+		// return the lyrics etc from within there
 
-      // Finish
-      xhtml.endDocument();
-      vorbis.close();
-   }
-   
-   protected void extractInfo(Metadata metadata, VorbisInfo info) throws TikaException {
-      metadata.set(XMPDM.AUDIO_SAMPLE_RATE, (int)info.getRate());
-      metadata.add("version", "Vorbis " + info.getVersion());
-    
-      extractChannelInfo(metadata, info);
-   }
+		// Extract the audio length
+		extractDuration(metadata, xhtml, vorbis, vorbis);
+
+		// Finish
+		xhtml.endDocument();
+		vorbis.close();
+	}
+
+	protected void extractInfo(Metadata metadata, VorbisInfo info) throws TikaException {
+		metadata.set(XMPDM.AUDIO_SAMPLE_RATE, (int) info.getRate());
+		metadata.add("version", "Vorbis " + info.getVersion());
+
+		extractChannelInfo(metadata, info);
+	}
 }
